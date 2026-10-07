@@ -1,0 +1,32 @@
+## Interface: 30300
+## Title: |cff3399ff[manacode]|r Vendor
+## Title-ruRU: |cff3399ff[manacode]|r Vendor |cff808080— весь товар одним списком|r
+## Notes: All merchant goods in one scrollable window instead of pages of ten.
+## Notes-ruRU: Весь товар торговца одним списком вместо страниц по десять
+## Author: Dmitry
+## Version: 0.1.0
+## X-Date: 2026-10-07
+## SavedVariables: HTP_VendorDB
+
+vendor.lua
+core\locale.lua
+locale\ruRU.lua
+locale\enUS.lua
+data\layout.lua
+data\reagents.lua
+data\tiers.lua
+core\scan.lua
+core\groups.lua
+core\list.lua
+core\have.lua
+core\junk.lua
+core\chain.lua
+core\filter.lua
+ui\theme.lua
+ui\kit\pool.lua
+ui\kit\item.lua
+ui\kit\currency.lua
+ui\kit\goods.lua
+ui\kit\confirm.lua
+ui\window.lua
+ui\filters.lua
