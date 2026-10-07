@@ -4,6 +4,7 @@ ns.Chain = Chain
 local MAX_STEPS = 8
 local TICK = 0.1
 local WAIT_MAX = 3
+local BATCH = 100
 local GUARD = 600
 local edges = {}
 local byGet = {}
@@ -193,23 +194,40 @@ runner:SetScript("OnUpdate", function(self, dt)
     if job.guard > GUARD then
         return Chain.Stop("chainStop", job.bought)
     end
+    local pend = job.pend
+    if pend then
+        if count(pend.edge.payLink) > pend.expect then
+            job.wait = job.wait + TICK
+            if job.wait <= WAIT_MAX then return end
+            job.pend, job.wait = nil, 0
+            if pend.take <= 1 then
+                return Chain.Stop("chainShort", pend.edge.name or "")
+            end
+            job.cap = math.floor(pend.take / 2)
+            return
+        end
+        job.pend, job.wait = nil, 0
+        local e = pend.edge
+        job.left = job.left - pend.take
+        job.done = job.done + pend.take
+        job.bought = job.bought + pend.take
+        if job.step ~= job.i then
+            job.step, job.got = job.i, 0
+        end
+        job.got = job.got + pend.take * e.getN
+        job.gotName = e.name
+        if job.onChange then job.onChange() end
+    end
     while job.left <= 0 do
         job.i = job.i + 1
         local nxt = job.list[job.i]
         if not nxt then
             return Chain.Stop("chainDone", job.gotName or "", job.got or 0)
         end
-        job.left, job.done, job.expect = nxt.times or 0, 0, nil
+        job.left, job.done = nxt.times or 0, 0
     end
     local e = job.list[job.i].edge
-    local stack = GetMerchantItemMaxStack(e.index) or 1
-    if stack < 1 then stack = 1 end
-    local take = job.left < stack and job.left or stack
     local purse = count(e.payLink)
-    if job.expect and purse > job.expect then
-        job.wait = job.wait + TICK
-        if job.wait <= WAIT_MAX then return end
-    end
     local fit = math.floor(purse / e.payN)
     if fit < 1 then
         job.wait = job.wait + TICK
@@ -219,18 +237,14 @@ runner:SetScript("OnUpdate", function(self, dt)
         return
     end
     job.wait = 0
+    local stack = GetMerchantItemMaxStack(e.index) or 1
+    local cap = stack < 1 and BATCH or stack
+    if job.cap < cap then cap = job.cap end
+    local take = job.left
+    if cap < take then take = cap end
     if fit < take then take = fit end
     BuyMerchantItem(e.index, take)
-    job.expect = purse - take * e.payN
-    job.left = job.left - take
-    job.done = job.done + take
-    job.bought = job.bought + take
-    if job.step ~= job.i then
-        job.step, job.got = job.i, 0
-    end
-    job.got = job.got + take * e.getN
-    job.gotName = e.name
-    if job.onChange then job.onChange() end
+    job.pend = { edge = e, take = take, expect = purse - take * e.payN }
 end)
 function Chain.Run(list, onChange)
     if job.list or not list or #list == 0 then return false end
@@ -242,6 +256,7 @@ function Chain.Run(list, onChange)
     wipe(job)
     job.list, job.i, job.left, job.done = list, 0, 0, 0
     job.wait, job.clock, job.guard, job.bought, job.got = 0, TICK, 0, 0, 0
+    job.cap = BATCH
     job.onChange = onChange
     runner:Show()
     return true
