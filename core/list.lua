@@ -328,7 +328,7 @@ function List.CanAfford(row)
 end
 function List.BuyMany(index, count)
     local maxStack = GetMerchantItemMaxStack(index) or 1
-    if maxStack < 1 then maxStack = 1 end
+    if maxStack < 1 then maxStack = 100 end
     local left, guard = count, 0
     while left > 0 and guard < 200 do
         local take = left < maxStack and left or maxStack
