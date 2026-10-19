@@ -174,6 +174,7 @@ function Groups.MarkMine(rows)
     local className = UnitClass("player")
     for _, r in ipairs(rows) do
         r.mine = (r.name and my[ns.Lower(r.name)])
+            or (ns.Prof and ns.Prof.Mine(r.id))
             or (ammo and r.subType == ammo)
             or (r.classes and className and strfind(r.classes, className, 1, true) ~= nil)
             or false

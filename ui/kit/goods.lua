@@ -22,13 +22,25 @@ local RIDE = {
     [75] = { 60, false }, [150] = { 100, false },
     [225] = { 150, true }, [300] = { 280, true },
 }
+local FLY_SPELL = 2983
+local FLY_ICON_SIZE = 12
 local function T(...) return ns.T(...) end
+local flyIcon
+local function flyMark()
+    if flyIcon == nil then
+        local _, _, tex = GetSpellInfo(FLY_SPELL)
+        flyIcon = tex and ns.Icon(tex, FLY_ICON_SIZE) or false
+    end
+    return flyIcon
+end
 local function mountLine(data)
     local misc = ns.Groups.Misc()
     if not misc or not data.subType or data.subType ~= misc.mount then return nil end
     local r = data.skill and RIDE[data.skill]
     if not r then return nil end
-    return T(r[2] and "mountFly" or "mountGround", r[1])
+    if not r[2] then return T("mountGround", r[1]) end
+    local mark = flyMark()
+    return mark and (mark .. " " .. T("mountFly", r[1])) or T("mountFlyText", r[1])
 end
 function ns.MakeGoods(parent, bind)
     local g = CreateFrame("Button", nil, parent)

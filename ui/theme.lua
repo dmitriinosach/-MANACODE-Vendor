@@ -7,7 +7,6 @@ local TITLE_BG = "Interface\\PaperDollInfoFrame\\UI-GearManager-Title-Background
 local MARBLE = "Interface\\PaperDollInfoFrame\\UI-Character-CharacterTab-L1"
 local TAB_ON = "Interface\\PaperDollInfoFrame\\UI-Character-ActiveTab"
 local TIP_EDGE = "Interface\\Tooltips\\UI-Tooltip-Border"
-local SLOT = "Interface\\Buttons\\UI-Quickslot2"
 local HILITE = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
 local PRESSED = "Interface\\Buttons\\UI-Quickslot-Depress"
 local BTN_HILITE = "Interface\\Buttons\\ButtonHilight-Square"
@@ -28,7 +27,6 @@ local PIECES = {
 local MARBLE_COORD = { 0.255, 1, 0.29, 1 }
 local TAB_CAP, TAB_H = 20, 32
 local TAB_L, TAB_R = 0.15625, 0.84375
-local SLOT_COORD = { 0.1875, 0.796875 }
 local BOTTOM_TAB_H = 26
 local TAB_RAISE = 5
 local SKINS = { vanilla = true, flat = true }
@@ -176,15 +174,12 @@ end
 function Theme.RefreshTab(btn)
     skinTab(btn)
 end
-local FRAME_GOLD = { 0.9, 0.74, 0.32 }
-local FRAME_OUT = 2
-local function edgeFor(size)
-    return math.max(5, math.floor(size / 4))
-end
+local SLOT_BACK = { 0, 0, 0, 0.85 }
+local SLOT_EDGE = { 0.32, 0.30, 0.26 }
+local SLOT_OUT = 2
 local function skinRow(row)
-    row.slotTex:Hide()
-    row.iconEdge:Hide()
-    row.qualFrame:Show()
+    row.slotBack:Show()
+    row.slotEdge:Show()
 end
 function Theme.Host(row, odd)
     local bg = row:CreateTexture(nil, "BACKGROUND")
@@ -203,8 +198,6 @@ function Theme.Highlight(frame, over)
     return hl
 end
 function Theme.IconSize(row, size)
-    row.slotTex:SetWidth(size + 6)
-    row.slotTex:SetHeight(size + 6)
     if row.glowTex then
         row.glowTex:SetWidth(math.floor(size * GLOW_SCALE))
         row.glowTex:SetHeight(math.floor(size * GLOW_SCALE))
@@ -213,18 +206,22 @@ function Theme.IconSize(row, size)
         row.haveTex:SetWidth(math.floor(size * HAVE_SCALE))
         row.haveTex:SetHeight(math.floor(size * HAVE_SCALE))
     end
-    if row.qualFrame then
-        row.qualFrame:SetBackdrop({ edgeFile = TIP_EDGE, edgeSize = edgeFor(size) })
-        local c = row.qualColor or FRAME_GOLD
-        row.qualFrame:SetBackdropBorderColor(c[1], c[2], c[3], 1)
-    end
+end
+local function slotUnder(owner, icon)
+    local back = owner:CreateTexture(nil, "BACKGROUND")
+    back:SetTexture(WHITE)
+    back:SetVertexColor(SLOT_BACK[1], SLOT_BACK[2], SLOT_BACK[3], SLOT_BACK[4])
+    back:SetPoint("TOPLEFT", icon, "TOPLEFT", -SLOT_OUT, SLOT_OUT)
+    back:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", SLOT_OUT, -SLOT_OUT)
+    local edge = owner:CreateTexture(nil, "BORDER")
+    edge:SetTexture(WHITE)
+    edge:SetVertexColor(SLOT_EDGE[1], SLOT_EDGE[2], SLOT_EDGE[3], 1)
+    edge:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1)
+    edge:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+    return back, edge
 end
 function Theme.Icon(row, icon, size)
-    row.iconEdge = row:CreateTexture(nil, "BORDER")
-    row.iconEdge:SetTexture(WHITE)
-    row.iconEdge:SetVertexColor(0, 0, 0, 1)
-    row.iconEdge:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1)
-    row.iconEdge:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+    row.slotBack, row.slotEdge = slotUnder(row, icon)
     row.glowTex = row:CreateTexture(nil, "OVERLAY")
     row.glowTex:SetTexture(GLOW)
     row.glowTex:SetBlendMode("ADD")
@@ -235,18 +232,6 @@ function Theme.Icon(row, icon, size)
     row.haveTex:SetTexture(HAVE)
     row.haveTex:SetPoint("TOPRIGHT", icon, "TOPRIGHT", 3, 3)
     row.haveTex:Hide()
-    row.slotTex = row:CreateTexture(nil, "OVERLAY")
-    row.slotTex:SetTexture(SLOT)
-    row.slotTex:SetTexCoord(SLOT_COORD[1], SLOT_COORD[2], SLOT_COORD[1], SLOT_COORD[2])
-    row.slotTex:SetPoint("CENTER", icon, "CENTER", 0, 0)
-    row.slotTex:SetAlpha(0.8)
-    row.qualFrame = CreateFrame("Frame", nil, row)
-    row.qualFrame:SetFrameLevel(row:GetFrameLevel() + 2)
-    row.qualFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -FRAME_OUT, FRAME_OUT)
-    row.qualFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", FRAME_OUT, -FRAME_OUT)
-    Theme.IconSize(row, size or icon:GetWidth())
-    row.qualFrame:Hide()
-    row.haveTex:SetParent(row.qualFrame)
     Theme.IconSize(row, size or icon:GetWidth())
     register(skinRow, row)
 end
@@ -257,17 +242,31 @@ function Theme.IconTint(row, r, g, b, frame, glow)
     else
         row.glowTex:Hide()
     end
-    row.qualColor = (r and frame) and { r, g, b } or nil
-    local c = row.qualColor or FRAME_GOLD
-    local fr, fg, fb = c[1], c[2], c[3]
-    if row.qualColor and 0.3 * fr + 0.59 * fg + 0.11 * fb < DARK_LUM then
-        fr, fg, fb = fr + (1 - fr) * LIFT, fg + (1 - fg) * LIFT, fb + (1 - fb) * LIFT
+    if not (r and frame) then
+        row.slotEdge:SetVertexColor(SLOT_EDGE[1], SLOT_EDGE[2], SLOT_EDGE[3], 1)
+        return
     end
-    row.qualFrame:SetBackdropBorderColor(fr, fg, fb, 1)
+    if 0.3 * r + 0.59 * g + 0.11 * b < DARK_LUM then
+        r, g, b = r + (1 - r) * LIFT, g + (1 - g) * LIFT, b + (1 - b) * LIFT
+    end
+    row.slotEdge:SetVertexColor(r, g, b, 1)
 end
 function Theme.Row(row, icon, odd)
     Theme.Host(row, odd)
     Theme.Icon(row, icon)
+end
+function Theme.Track(bar, arrow)
+    local back = bar:CreateTexture(nil, "BACKGROUND")
+    back:SetTexture(WHITE)
+    back:SetVertexColor(SLOT_BACK[1], SLOT_BACK[2], SLOT_BACK[3], 0.45)
+    back:SetPoint("TOPLEFT", bar, "TOPLEFT", -1, arrow + 1)
+    back:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 1, -arrow - 1)
+end
+function Theme.HideIcon(row)
+    row.slotBack:Hide()
+    row.slotEdge:Hide()
+    row.glowTex:Hide()
+    row.haveTex:Hide()
 end
 function Theme.ShowIcon(row)
     skinRow(row)
@@ -347,15 +346,6 @@ function Theme.Divider(row, textX)
     row.divLine:SetPoint("LEFT", row.divText, "RIGHT", 8, 0)
     row.divLine:SetPoint("RIGHT", row, "RIGHT", -6, 0)
 end
-local function skinIconButton(btn)
-    if vanilla() then
-        btn.ring:Show()
-        btn.edge:Hide()
-    else
-        btn.ring:Hide()
-        btn.edge:Show()
-    end
-end
 local function skinPanel(frame)
     frame:SetBackdrop({
         bgFile = WHITE, edgeFile = TIP_EDGE, tile = false, edgeSize = 16,
@@ -377,22 +367,11 @@ function Theme.IconButton(parent, size)
     local btn = CreateFrame("Button", nil, parent)
     btn:SetWidth(size)
     btn:SetHeight(size)
-    btn.edge = btn:CreateTexture(nil, "BACKGROUND")
-    btn.edge:SetTexture(WHITE)
-    btn.edge:SetVertexColor(0, 0, 0, 1)
-    btn.edge:SetPoint("TOPLEFT", btn, "TOPLEFT", -1, 1)
-    btn.edge:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", 1, -1)
     btn.icon = btn:CreateTexture(nil, "ARTWORK")
     btn.icon:SetAllPoints(btn)
-    btn.ring = btn:CreateTexture(nil, "OVERLAY")
-    btn.ring:SetTexture(SLOT)
-    btn.ring:SetTexCoord(SLOT_COORD[1], SLOT_COORD[2], SLOT_COORD[1], SLOT_COORD[2])
-    btn.ring:SetWidth(size + 6)
-    btn.ring:SetHeight(size + 6)
-    btn.ring:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.slotBack, btn.edge = slotUnder(btn, btn.icon)
     btn:SetPushedTexture(PRESSED)
     btn:SetHighlightTexture(BTN_HILITE, "ADD")
-    register(skinIconButton, btn)
     return btn
 end
 function Theme.SetIconEnabled(btn, on)

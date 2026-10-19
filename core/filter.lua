@@ -34,7 +34,7 @@ local USABLE = "usable"
 local TREE = {
     { key = "mine", subs = { "mineClass", "mineProf", "mineStat", "mineWear" } },
     { key = USABLE },
-    { key = "ammo", subs = { "arrow", "bullet", "thrown" } },
+    { key = "ammo", subs = { "arrow", "bullet", "thrown", "food" } },
     { key = "rank" },
     { key = "coins", subs = { "hideSilver", "hideCopper", "hideGear", "hideLevel" }, nocount = true },
     { key = "look", subs = { "qualityName", "qualityFrame", "qualityGlow" }, nocount = true },
@@ -56,10 +56,10 @@ local function defaults()
     local ammo = not RANGED[classToken()]
     return {
         mineClass = true, mineProf = false, mineStat = false, mineWear = false,
-        arrow = ammo, bullet = ammo, thrown = ammo,
+        arrow = ammo, bullet = ammo, thrown = ammo, food = false,
         rank = false,
         hideSilver = true, hideCopper = true, hideGear = true, hideLevel = false,
-        qualityName = false, qualityFrame = true, qualityGlow = true,
+        qualityName = false, qualityFrame = true, qualityGlow = false,
     }
 end
 local kept
@@ -160,7 +160,7 @@ local function alienClass(row)
     end
     local owner = row.id and ns.reagentClass and ns.reagentClass[row.id]
     if owner and not strfind(owner, classToken(), 1, true) then return true end
-    return false
+    return ns.Uses ~= nil and ns.Uses.Gear(row) == "never"
 end
 local function alienProf(row)
     if not row.id or not ns.reagentAny or not ns.reagentAny[row.id] then return false end
@@ -270,6 +270,7 @@ function Filter.Apply(src, out)
                     drop = t[kind] and true or false
                 end
             end
+            if not drop and t.food and ns.Uses and ns.Uses.Food(row) then drop = true end
             if not drop and best then
                 local base, rank = rankOf(row.name)
                 if base and best[base] and best[base].rank ~= rank then drop = true end

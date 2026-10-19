@@ -71,6 +71,20 @@ local function dietOf(t, have)
     if have == nil and d.mana ~= "" and strfind(low, d.mana, 1, true) then return "drink" end
     return have
 end
+local function amountBefore(low, stem)
+    if stem == "" then return nil end
+    local at = strfind(low, stem, 1, true)
+    if not at then return nil end
+    return tonumber(low:sub(1, at - 1):match("(%d+)%D*$"))
+end
+local function feedOf(t, c)
+    if USE_PREFIX == "" or t:sub(1, #USE_PREFIX) ~= USE_PREFIX then return end
+    local d = loadDiet()
+    local low = ns.Lower(t)
+    c.hp = c.hp or amountBefore(low, d.health)
+    c.mp = c.mp or amountBefore(low, d.mana)
+    if ns.Has("dietBuff") and strfind(low, ns.Lower(ns.T("dietBuff")), 1, true) then c.buff = true end
+end
 local function loadStats()
     if stats then return stats end
     stats = {}
@@ -144,6 +158,7 @@ function Scan.Item(index, link, name)
                 if inner then c.desc = (inner:gsub("%.$", "")) end
             end
             c.diet = dietOf(t, c.diet)
+            feedOf(t, c)
             if enchantUse(t) then c.enchant = true end
             if not c.repRank then c.repRank, c.repFaction = repOf(t) end
             if not c.req and t ~= "" then
@@ -191,6 +206,7 @@ function Scan.MyReagents()
         for s = offset + 1, offset + num do
             reset()
             tip:SetSpell(s, BOOKTYPE_SPELL)
+            local spell = line(1) or true
             for i = 2, tip:NumLines() do
                 local t = line(i)
                 if t then
@@ -198,7 +214,8 @@ function Scan.MyReagents()
                     if t:sub(1, #REAGENT_PREFIX) == REAGENT_PREFIX then
                         for name in t:sub(#REAGENT_PREFIX + 1):gmatch("[^,%c]+") do
                             name = trim(name):gsub("%s*%(%d+%)$", "")
-                            if name ~= "" then reagents[ns.Lower(name)] = true end
+                            local key = ns.Lower(name)
+                            if name ~= "" and not reagents[key] then reagents[key] = spell end
                         end
                     end
                 end
