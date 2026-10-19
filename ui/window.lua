@@ -62,7 +62,7 @@ local MINUS = "Interface\\Buttons\\UI-MinusButton-Up"
 local BTN_HILITE = "Interface\\Buttons\\ButtonHilight-Square"
 local frame, listArea, scroll, search, searchHint, emptyText, moneyText, moneyBtn
 local filterGlyph, viewGlyph
-local hammerBtn, repairBtn, guildBtn, repairText, junkBtn, junkText, grip, qbar
+local hammerBtn, repairBtn, guildBtn, repairText, junkBtn, junkText, grip, qbar, sizer
 local colMore, colLess, footLine, ruler
 local tabs = {}
 local TAB_ORDER = { "goods", "buyback" }
@@ -71,6 +71,7 @@ local goodsPool
 local chips = {}
 local walletList = {}
 local costLines = {}
+local useLines = {}
 local colLines = {}
 local state = {
     tab = "goods",
@@ -270,8 +271,6 @@ placeFoot = function()
     if want ~= footH then
         footH = want
         frame:SetHeight(frameHeight(state.rows))
-        frame:SetMinResize(frameWidth(1), frameHeight(MIN_ROWS))
-        frame:SetMaxResize(frameWidth(roomCols()), frameHeight(roomRows()))
     end
     local topY = two and (FOOT_Y + FOOT_ROW) or FOOT_Y
     footLine:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", PAD, footH - 2)
@@ -570,6 +569,12 @@ local function rowEnter(self)
         if self.narrow then GameTooltip:AddLine(T("priceLine", ns.List.PriceText(self.data)), 1, 1, 1) end
         local have = ns.Have.Count(self.data.link)
         if have > 0 then GameTooltip:AddLine(T("haveCount", have), 1, 0.82, 0) end
+        local uses = ns.Uses.Lines(self.data, useLines)
+        if #uses > 0 then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(T("useTitle"), 1, 0.82, 0)
+            for _, u in ipairs(uses) do GameTooltip:AddLine(u.text, u.r, u.g, u.b, true) end
+        end
         local cost = ns.List.CostLines(self.data, costLines)
         if #cost > 0 then
             GameTooltip:AddLine(" ")
@@ -822,10 +827,7 @@ local function clearRow(row)
     row.divTex:Hide()
     row:SetID(0)
     row.icon:Hide()
-    row.slotTex:Hide()
-    row.iconEdge:Hide()
-    row.qualFrame:Hide()
-    row.haveTex:Hide()
+    ns.Theme.HideIcon(row)
     row.name:Hide()
     row.sub:Hide()
     row.priceText:SetText("")
@@ -1238,8 +1240,6 @@ applyLayout = function(cols, nrows)
     local least = 1
     state.cols = math.max(least, math.min(maxCols, cols or state.cols))
     state.rows = math.max(MIN_ROWS, math.min(maxRows, nrows or state.rows))
-    frame:SetMinResize(frameWidth(least), frameHeight(MIN_ROWS))
-    frame:SetMaxResize(frameWidth(maxCols), frameHeight(maxRows))
     frame:SetWidth(frameWidth(state.cols))
     frame:SetHeight(frameHeight(state.rows))
     listArea:SetWidth(listWidth(state.cols))
@@ -1270,8 +1270,7 @@ rememberSize = function()
         db.sizes[state.vendor] = { cols = state.cols, rows = state.rows }
     end
 end
-local function snapSize()
-    local w, h = frame:GetWidth(), frame:GetHeight()
+local function snapSize(w, h)
     local cols = math.floor((w - PAD * 2 - SCROLL_W + COL_GAP) / (COL_DEF + COL_GAP) + 0.5)
     local nrows = math.floor((h - LIST_TOP - footH) / ROW_H + 0.5)
     applyLayout(cols, nrows)
@@ -1409,9 +1408,6 @@ local function buildChrome()
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -104)
     frame:EnableMouse(true)
     frame:SetToplevel(true)
-    frame:SetResizable(true)
-    frame:SetMinResize(frameWidth(1), frameHeight(MIN_ROWS))
-    frame:SetMaxResize(frameWidth(roomCols()), frameHeight(roomRows()))
     frame:Hide()
     UIPanelWindows[NAME] = { area = "left", pushable = 0 }
     ns.Theme.Chrome(frame)
@@ -1505,6 +1501,7 @@ local function buildList()
     bar:ClearAllPoints()
     bar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", 2, -16)
     bar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", 2, 16)
+    ns.Theme.Track(bar, 16)
     for i = 1, MAX_COLS - 1 do
         local line = listArea:CreateTexture(nil, "ARTWORK")
         line:SetTexture(WHITE)
@@ -1572,11 +1569,16 @@ local function buildFoot()
     local gripTex = grip:CreateTexture(nil, "OVERLAY")
     gripTex:SetAllPoints(grip)
     gripTex:SetTexture(GRIP)
-    grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
-    grip:SetScript("OnMouseUp", function()
-        frame:StopMovingOrSizing()
-        snapSize()
+    sizer = ns.Sizer.New(frame, {
+        limits = function()
+            return frameWidth(1), frameHeight(MIN_ROWS), frameWidth(roomCols()), frameHeight(roomRows())
+        end,
+        apply = snapSize,
+    })
+    grip:SetScript("OnMouseDown", function(_, button)
+        if button == "LeftButton" then sizer:Start() end
     end)
+    grip:SetScript("OnMouseUp", function() sizer:Finish() end)
     grip:SetScript("OnEnter", function(self)
         gripTex:SetVertexColor(1, 0.9, 0.5)
         tipShow(self, T("tipGrip"))
@@ -1648,6 +1650,7 @@ local function buildEvents()
         CloseMerchant()
         if not state.backpackWasOpen then CloseBackpack() end
         search:ClearFocus()
+        if sizer then sizer:Cancel() end
         ResetCursor()
         if InRepairMode() then HideRepairCursor() end
         StaticPopup_Hide("CONFIRM_PURCHASE_TOKEN_ITEM")

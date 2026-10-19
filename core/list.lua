@@ -21,6 +21,7 @@ function ns.UpperFirst(s)
     if not s or s == "" then return s end
     local two = s:sub(1, 2)
     if UP[two] then return UP[two] .. s:sub(3) end
+    if s:byte(1) >= 0x80 then return s end
     return s:sub(1, 1):upper() .. s:sub(2)
 end
 local EN2RU, RU2EN = {}, {}
@@ -138,6 +139,7 @@ function List.Scan()
         row.skill = info.skill
         row.stat = info.stat
         row.diet = info.diet
+        row.hp, row.mp, row.buff = info.hp, info.mp, info.buff
         row.enchant = info.enchant
         row.repRank, row.repFaction = info.repRank, info.repFaction
         if info.product then

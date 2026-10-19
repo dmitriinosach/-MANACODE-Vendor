@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 ns.ADDON = ADDON
-ns.VERSION = "0.1.0"
+ns.VERSION = "0.1.3"
 local DEFAULTS = {
     enabled = true,
     usableOnly = false,
@@ -48,7 +48,7 @@ function ns.SetEnabled(on)
     ns.ApplyTakeover()
     ns.say(ns.T(on and "chatOn" or "chatOff"))
 end
-local PARTS = { "Theme", "Scan", "Groups", "List", "Have", "Junk", "Filter", "Filters" }
+local PARTS = { "Theme", "Scan", "Prof", "Uses", "Groups", "List", "Have", "Junk", "Sold", "Filter", "Filters", "Sizer" }
 local broken = false
 function ns.Enabled()
     return (not broken) and HTP_VendorDB and HTP_VendorDB.enabled and true or false
@@ -116,6 +116,11 @@ SlashCmdList.HTPVENDOR = function(msg)
         ns.say(ns.T("diagTypes"))
         for i, name in ipairs(t.classes) do ns.say(i .. ": " .. name) end
         ns.say(ns.T("diagPick", tostring(t.recipe)))
+        for c = 1, 2 do
+            local subs = {}
+            for i, name in ipairs({ GetAuctionItemSubClasses(c) }) do subs[#subs + 1] = i .. " " .. name end
+            ns.say((t.classes[c] or c) .. ": " .. table.concat(subs, ", "))
+        end
     else
         ns.say(ns.T(ns.Enabled() and "chatOn" or "chatOff"))
         ns.say(ns.T("chatHelp"))
