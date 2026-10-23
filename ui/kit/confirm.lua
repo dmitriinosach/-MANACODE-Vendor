@@ -446,4 +446,149 @@ function ns.ConfirmJunk(parent, list, total, onOk)
 end
 function ns.ConfirmHide()
     if panel then panel:Hide() end
+    if ns.Refund then ns.Refund.Hide() end
+end
+local Refund = {}
+ns.Refund = Refund
+local bagMouse = setmetatable({}, { __mode = "k" })
+local function restoreBagClick(button, state)
+    if state.blocked then
+        button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        state.blocked = nil
+    end
+    state.bag, state.slot, state.link = nil, nil, nil
+end
+function Refund.RestoreMouse()
+    for button, state in pairs(bagMouse) do restoreBagClick(button, state) end
+end
+function Refund.WatchMouse(button)
+    if bagMouse[button] then return end
+    local pending = {}
+    bagMouse[button] = pending
+    button:HookScript("OnMouseDown", function(self, key)
+        restoreBagClick(self, pending)
+        if key ~= "RightButton" or not ns.SellingTab() or MerchantFrame:IsShown()
+            or InRepairMode() or IsModifiedClick() then return end
+        local bag, slot = self:GetParent():GetID(), self:GetID()
+        local _, _, locked, _, _, _, link = GetContainerItemInfo(bag, slot)
+        local gold, honor, arena, items, seconds = GetContainerItemPurchaseInfo(bag, slot)
+        if locked or not link or not seconds
+            or ((gold or 0) == 0 and (honor or 0) == 0 and (arena or 0) == 0 and (items or 0) == 0) then return end
+        pending.bag, pending.slot, pending.link = bag, slot, link
+        pending.blocked = true
+        self:RegisterForClicks("LeftButtonUp")
+    end)
+    button:HookScript("OnMouseUp", function(_, key)
+        if key ~= "RightButton" or not pending.link then return end
+        local bag, slot, link = pending.bag, pending.slot, pending.link
+        pending.bag, pending.slot, pending.link = nil, nil, nil
+        if ns.SellingTab() and not InRepairMode() and not IsModifiedClick() then
+            Refund.Ask(bag, slot, link)
+        end
+    end)
+    button:HookScript("OnLeave", function()
+        pending.bag, pending.slot, pending.link = nil, nil, nil
+    end)
+end
+local refundPanel
+local refundRows = {}
+local REFUND_W, REFUND_ROW = 360, 34
+local function canRefund(bag, slot)
+    local gold, honor, arena, items, seconds = GetContainerItemPurchaseInfo(bag, slot)
+    return seconds and ((gold or 0) > 0 or (honor or 0) > 0
+        or (arena or 0) > 0 or (items or 0) > 0) and true or false
+end
+function Refund.Scan()
+    local list = {}
+    for bag = 0, NUM_BAG_SLOTS or 4 do
+        for slot = 1, GetContainerNumSlots(bag) or 0 do
+            local tex, count, locked, _, _, _, link = GetContainerItemInfo(bag, slot)
+            if link and not locked and canRefund(bag, slot) then
+                list[#list + 1] = { bag = bag, slot = slot, link = link, tex = tex, count = count }
+            end
+        end
+    end
+    return list
+end
+function Refund.Ask(bag, slot, expected)
+    if not ns.MerchantOpen() then return false end
+    local _, count, locked, _, _, _, link = GetContainerItemInfo(bag, slot)
+    if locked or link ~= expected or not canRefund(bag, slot) then return false end
+    local parent = { GetID = function() return bag end }
+    local source = { count = count, GetID = function() return slot end,
+        GetParent = function() return parent end }
+    MerchantFrame_ResetRefundItem()
+    return ContainerFrame_GetExtendedPriceString(source) and true or false
+end
+local function buildRefund(parent)
+    refundPanel = CreateFrame("Frame", "HTP_VendorRefund", parent)
+    refundPanel:SetWidth(REFUND_W)
+    refundPanel:SetFrameStrata("DIALOG")
+    refundPanel:EnableMouse(true)
+    refundPanel:SetPoint("CENTER", parent, "CENTER", 0, 0)
+    ns.Theme.Panel(refundPanel)
+    refundPanel.title = refundPanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    refundPanel.title:SetPoint("TOPLEFT", refundPanel, "TOPLEFT", PAD, -PAD)
+    refundPanel.title:SetText(T("refundTitle"))
+    refundPanel.note = refundPanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    refundPanel.note:SetPoint("TOPLEFT", refundPanel, "TOPLEFT", PAD, -34)
+    refundPanel.note:SetWidth(REFUND_W - PAD * 2)
+    refundPanel.note:SetJustifyH("LEFT")
+    refundPanel.scroll = CreateFrame("ScrollFrame", "HTP_VendorRefundScroll", refundPanel, "UIPanelScrollFrameTemplate")
+    refundPanel.scroll:SetPoint("TOPLEFT", refundPanel, "TOPLEFT", PAD, -68)
+    refundPanel.scroll:SetPoint("BOTTOMRIGHT", refundPanel, "BOTTOMRIGHT", -32, 42)
+    refundPanel.canvas = CreateFrame("Frame", nil, refundPanel.scroll)
+    refundPanel.canvas:SetWidth(REFUND_W - PAD - 32)
+    refundPanel.scroll:SetScrollChild(refundPanel.canvas)
+    local close = ns.Theme.Chip(refundPanel, CANCEL)
+    close:SetPoint("BOTTOMRIGHT", refundPanel, "BOTTOMRIGHT", -PAD, PAD)
+    close:SetHeight(BTN_H)
+    close:SetScript("OnClick", function() refundPanel:Hide() end)
+    tinsert(UISpecialFrames, "HTP_VendorRefund")
+end
+function Refund.Show(parent)
+    if not ns.MerchantOpen() then return end
+    if not refundPanel then buildRefund(parent) end
+    local list = Refund.Scan()
+    refundPanel.note:SetText(T(#list == 0 and "refundEmpty" or "refundChoose"))
+    for i, item in ipairs(list) do
+        local row = refundRows[i]
+        if not row then
+            row = CreateFrame("Button", nil, refundPanel.canvas)
+            row:SetWidth(REFUND_W - PAD - 32)
+            row:SetHeight(REFUND_ROW)
+            row:SetPoint("TOPLEFT", refundPanel.canvas, "TOPLEFT", 0, -(i - 1) * REFUND_ROW)
+            row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+            row.icon = row:CreateTexture(nil, "ARTWORK")
+            row.icon:SetWidth(24)
+            row.icon:SetHeight(24)
+            row.icon:SetPoint("LEFT", row, "LEFT", 0, 0)
+            row.label = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            row.label:SetPoint("LEFT", row.icon, "RIGHT", 8, 0)
+            row.label:SetWidth(REFUND_W - PAD - 70)
+            row.label:SetJustifyH("LEFT")
+            row:SetScript("OnClick", function(self)
+                if Refund.Ask(self.bag, self.slot, self.link) then refundPanel:Hide() end
+            end)
+            row:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetHyperlink(self.link)
+                GameTooltip:Show()
+            end)
+            row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            refundRows[i] = row
+        end
+        row.bag, row.slot, row.link = item.bag, item.slot, item.link
+        row.icon:SetTexture(item.tex)
+        row.label:SetText(item.link)
+        row:Show()
+    end
+    for i = #list + 1, #refundRows do refundRows[i]:Hide() end
+    refundPanel.canvas:SetHeight(math.max(1, #list * REFUND_ROW))
+    refundPanel:SetHeight(110 + math.max(1, math.min(#list, 8)) * REFUND_ROW)
+    refundPanel.scroll:SetVerticalScroll(0)
+    refundPanel:Show()
+end
+function Refund.Hide()
+    if refundPanel then refundPanel:Hide() end
 end

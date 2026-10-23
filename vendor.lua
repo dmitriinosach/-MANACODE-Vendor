@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 ns.ADDON = ADDON
-ns.VERSION = "0.1.4"
+ns.VERSION = "0.1.5"
 local DEFAULTS = {
     enabled = true,
     usableOnly = false,

@@ -108,41 +108,15 @@ end
 function ns.SellingTab()
     return ns.MerchantOpen() and state.tab == "goods"
 end
-local bagClicks = {}
-local function bagClick(self, button, ...)
-    if button == "RightButton" and ns.MerchantOpen() and not MerchantFrame:IsShown()
-        and not IsModifiedClick() and not InRepairMode() then
-        if not ns.SellingTab() then return end
-        MerchantFrame_ResetRefundItem()
-        if ContainerFrame_GetExtendedPriceString(self) then return end
-    end
-    return bagClicks[self](self, button, ...)
-end
-local function bindBagItem(item)
-    if bagClicks[item] then return end
-    local original = item:GetScript("OnClick")
-    if not original then return end
-    bagClicks[item] = original
-    item:SetScript("OnClick", bagClick)
-end
 hooksecurefunc("ContainerFrameItemButton_OnEnter", function(self)
-    bindBagItem(self)
+    ns.Refund.WatchMouse(self)
     if not ns.SellingTab() or InRepairMode() or IsModifiedClick("DRESSUP") then return end
     ShowContainerSellCursor(self:GetParent():GetID(), self:GetID())
-end)
-local function bindBag(container)
-    local name = container:GetName()
-    if not name then return end
-    for i = 1, MAX_CONTAINER_ITEMS do
-        local item = _G[name .. "Item" .. i]
-        if item then bindBagItem(item) end
-    end
-end
-hooksecurefunc("ContainerFrame_GenerateFrame", bindBag)
-ns.OnReady(function()
-    for i = 1, NUM_CONTAINER_FRAMES do
-        local container = _G["ContainerFrame" .. i]
-        if container then bindBag(container) end
+    local bag, slot = self:GetParent():GetID(), self:GetID()
+    local gold, honor, arena, items, seconds = GetContainerItemPurchaseInfo(bag, slot)
+    if seconds and ((gold or 0) > 0 or (honor or 0) > 0 or (arena or 0) > 0 or (items or 0) > 0) then
+        GameTooltip:AddLine(T("refundBagTip"), 0.6, 0.8, 1, true)
+        GameTooltip:Show()
     end
 end)
 local function listWidth(cols)
@@ -1731,6 +1705,7 @@ local function buildEvents()
         PlaySound("igCharacterInfoOpen")
     end)
     frame:SetScript("OnHide", function()
+        ns.Refund.RestoreMouse()
         CloseMerchant()
         if not state.backpackWasOpen then CloseBackpack() end
         search:ClearFocus()
@@ -1772,11 +1747,25 @@ local function buildEvents()
         end
     end)
 end
+local function makeRefundTab()
+    local refund = CreateFrame("Button", NAME .. "RefundTab", frame, "CharacterFrameTabButtonTemplate")
+    refund:SetID(#TAB_ORDER + 1)
+    refund:SetFrameStrata("LOW")
+    refund:SetScript("OnShow", nil)
+    refund:SetText(T("refundTitle"))
+    refund:SetPoint("LEFT", tabs.buyback, "RIGHT", -8, 0)
+    ns.Theme.Tab(refund)
+    sizeTab(refund, T("refundTitle"))
+    refund:SetScript("OnClick", function() ns.Refund.Show(frame) end)
+    refund:SetScript("OnEnter", function(self) tipShow(self, T("refundTitle"), T("refundTip")) end)
+    refund:SetScript("OnLeave", tipHide)
+end
 local function build()
     buildChrome()
     buildList()
     buildFoot()
     for i, key in ipairs(TAB_ORDER) do makeTab(i, key) end
+    makeRefundTab()
     buildEvents()
 end
 ns.OnReady(build)

@@ -1,6 +1,11 @@
 local ADDON, ns = ...
 ns.locales = ns.locales or {}
 ns.locales.enUS = {
+    refundTitle   = "Refund",
+    refundTip     = "Refund a purchase made with emblems, honor or arena points. Select the item and confirm.",
+    refundChoose  = "Select an item. The stock refund confirmation will appear next.",
+    refundEmpty   = "There are no purchases available for a refund in your bags.",
+    refundBagTip  = "Right-click to refund this purchase with confirmation.",
     aboutTitle    = "About Vendor",
     aboutTip      = "Version, links, updates and other ManaCode addons",
     aboutInfo     = "All merchant goods in one list: sets, search, filters, bulk purchases and emblem exchanges.",
