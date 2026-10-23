@@ -4,8 +4,8 @@
 ## Notes: All merchant goods in one scrollable window instead of pages of ten.
 ## Notes-ruRU: Весь товар торговца одним списком вместо страниц по десять
 ## Author: Dmitry
-## Version: 0.1.3
-## X-Date: 2026-10-19
+## Version: 0.1.4
+## X-Date: 2026-10-23
 ## SavedVariables: HTP_VendorDB
 
 libs\manacode\sizer.lua

@@ -99,6 +99,7 @@ function ns.ConfirmBuy(parent, data, purchases, onOk)
     panel.title:SetWidth(WIDTH - PAD * 2)
     panel.total:SetWidth(WIDTH - PAD * 2)
     panel.ok:SetText(OKAY)
+    panel.ok:SetWidth(BTN_W)
     panel.ok:Enable()
     panel.item:Show()
     panel.math:Show()
@@ -215,12 +216,13 @@ local function runAll()
         ns.Chain.Halt()
         return
     end
+    draw()
+    if not plan.complete then return end
     ns.Chain.Run(plan, draw)
     draw()
 end
 local function setWant(n)
     if n < 1 then n = 1 end
-    if (panel.reach or 0) > 0 and n > panel.reach then n = panel.reach end
     panel.want = n
     if panel.qty and panel.qty:GetText() ~= tostring(n) then
         panel.quiet = true
@@ -260,8 +262,10 @@ draw = function()
     local count = #plan - from + 2
     local w = PAD * 2 + count * NODE + (count - 1) * (SEP_GAP * 2 + SEP_W)
     if w < WIDTH then w = WIDTH end
+    if panel.purchase and w < JUNK_W then w = JUNK_W end
     panel:SetWidth(w)
     panel.title:SetWidth(w - PAD * 2)
+    panel.ok:SetWidth(panel.purchase and 132 or BTN_W)
     local y = -(PAD + TITLE_H)
     local x = PAD
     for i = 1, count do
@@ -279,7 +283,7 @@ draw = function()
     panel.total:ClearAllPoints()
     panel.total:SetPoint("TOPLEFT", panel, "TOPLEFT", PAD, y)
     panel.total:SetHeight(BTN_H)
-    panel.total:SetWidth(w - PAD * 2 - BTN_W * 2 - 20)
+    panel.total:SetWidth(w - PAD * 2 - panel.ok:GetWidth() - BTN_W - 20)
     local step, of, done, need = ns.Chain.Progress()
     if step then
         qty:Hide()
@@ -290,15 +294,36 @@ draw = function()
     else
         panel.total:Hide()
         qty:Show()
-        panel.ok:SetText(T("chainRun"))
-        if (plan.buys or 0) > 0 then panel.ok:Enable() else panel.ok:Disable() end
+        panel.ok:SetText(T(panel.purchase and "chainBuy" or "chainRun"))
+        if plan.complete then panel.ok:Enable() else panel.ok:Disable() end
     end
     panel.ok:ClearAllPoints()
     panel.ok:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PAD, y)
     panel.cancel:ClearAllPoints()
     panel.cancel:SetPoint("RIGHT", panel.ok, "LEFT", -8, 0)
     y = y - BTN_H
+    if not step then
+        panel.stacks:ClearAllPoints()
+        panel.stacks:SetPoint("TOPLEFT", panel, "TOPLEFT", PAD, y - 8)
+        panel.stacks:SetWidth(w - PAD * 2)
+        local possible = ns.Chain.Plan(ladder, nil, {}).got or 0
+        if not plan.complete then
+            local units = ladder[#ladder].getN
+            panel.stacks:SetText(T("chainNeed", math.floor(possible / units)))
+        elseif panel.purchase then
+            panel.stacks:SetText(T("chainBuyInfo"))
+        else
+            panel.stacks:SetText(T("chainAvailable", possible))
+        end
+        panel.stacks:Show()
+        y = y - 8 - panel.stacks:GetStringHeight()
+    else
+        panel.stacks:Hide()
+    end
     panel:SetHeight(-y + PAD)
+end
+function ns.ConfirmRefresh()
+    if panel and panel:IsShown() and panel.run and not ns.Chain.Busy() then draw() end
 end
 function ns.ConfirmChain(parent, row, list, want)
     if not panel then build(parent) end
@@ -319,7 +344,8 @@ function ns.ConfirmChain(parent, row, list, want)
     panel.title:SetTextColor(r, g, b)
     wipe(ladder)
     for i, e in ipairs(list) do ladder[i] = e end
-    panel.want, panel.reach = want, row.reach or 0
+    panel.want = want
+    panel.purchase = ns.List.Wearable(row.link)
     panel.run = runAll
     makeQty()
     panel.quiet = true
@@ -361,6 +387,7 @@ function ns.ConfirmJunk(parent, list, total, onOk)
     panel.title:SetTextColor(1, 0.82, 0)
     panel.ok:SetText(OKAY)
     panel.ok:Enable()
+    panel.ok:SetWidth(BTN_W)
     local n = #list
     local shown = n > JUNK_MAX and JUNK_MAX or n
     local y = -(PAD + TITLE_H)
