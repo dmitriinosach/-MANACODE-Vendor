@@ -16,6 +16,7 @@ locale\enUS.lua
 data\layout.lua
 data\reagents.lua
 data\tiers.lua
+data\otheraddons.lua
 core\scan.lua
 core\prof.lua
 core\uses.lua
@@ -32,5 +33,6 @@ ui\kit\item.lua
 ui\kit\currency.lua
 ui\kit\goods.lua
 ui\kit\confirm.lua
+ui\about.lua
 ui\window.lua
 ui\filters.lua

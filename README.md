@@ -3,6 +3,10 @@
 ## Русский
 
 **Что нового**
+- После обновления полностью перезапустите клиент: добавлены новые файлы.
+- Кнопка «i» у масштаба и `/vendor about` открывают сведения об аддоне:
+  установленная версия, ссылки для копирования, Discord, сайт и другие аддоны
+  ManaCode с отметкой об установке.
 - В узком окне цена продажи хлама уступает место починке и кошельку: сначала
   остаётся «хлам xN», затем только иконка. Полная сумма — в подсказке;
   при расширении окна подробности возвращаются.
@@ -56,7 +60,7 @@
 
 Скачать аддон можно на [странице релизов](https://github.com/dmitriinosach/-MANACODE-Vendor/releases).
 Распакуйте папку `ManaCode_Vendor` в `Interface\AddOns` и полностью перезапустите
-клиент после первой установки. При обновлении с 0.1.3 достаточно `/reload`.
+клиент после установки или обновления на 0.1.4: в этой версии добавлены новые файлы.
 
 Есть и моя [обновлялка ManacodeUpdate — скачать](https://github.com/dmitriinosach/-MANACODE-Update/releases/latest).
 Через неё можно скачивать все мои аддоны из каталога и автоматически обновлять
@@ -66,17 +70,22 @@
 **Команды**
 
 - `/vendor` — состояние аддона.
+- `/vendor about` — версия, ссылки и другие аддоны ManaCode.
 - `/vendor off` / `/vendor on` — вернуть штатное окно / включить Vendor.
 - `/vendor reset` — сбросить сохранённые размеры окон.
 - `/vendor theme vanilla` / `/vendor theme flat` — выбрать оформление.
 
 Клиент: **WoW 3.3.5a, build 12340**. Интерфейс на русском и английском.
 Обратная связь: [GitHub Issues](https://github.com/dmitriinosach/-MANACODE-Vendor/issues)
-или [Discord](https://discord.gg/hpTkJCJbwn).
+или [Discord](https://discord.gg/CYnxS6R9qY).
 
 ## English
 
 **What’s new**
+- Restart the game after updating: this version adds new files.
+- The “i” button beside the scale controls and `/vendor about` open an About
+  window with the installed version, copyable download, Discord and website
+  links, and other ManaCode addons with installation status.
 - Narrow windows shorten the junk sale summary to a count or just its button.
   The full sale value stays in the tooltip; widening the window restores the details.
 - When an item needs more emblems than you currently hold, the confirmation can
@@ -129,20 +138,23 @@ merchant sells. It opens automatically when you talk to a merchant.
 
 Download the addon from the [releases page](https://github.com/dmitriinosach/-MANACODE-Vendor/releases).
 Extract the `ManaCode_Vendor` folder into `Interface\AddOns` and restart the
-client after the first installation. Updating from 0.1.3 only needs `/reload`.
+client after installation or updating to 0.1.4: this version adds new files.
 
+<!--@noncurse@-->
 You can also use my [ManacodeUpdate updater — download here](https://github.com/dmitriinosach/-MANACODE-Update/releases/latest).
 It lets you download all of my addons listed in its catalog and automatically
 update the ones you have installed. Vendor is already included, so you do not
 need to download each new ZIP manually.
+<!--@end-noncurse@-->
 
 **Commands**
 
 - `/vendor` — addon status.
+- `/vendor about` — version, links and other ManaCode addons.
 - `/vendor off` / `/vendor on` — restore the stock window / enable Vendor.
 - `/vendor reset` — reset saved window sizes.
 - `/vendor theme vanilla` / `/vendor theme flat` — choose a theme.
 
 Client: **WoW 3.3.5a, build 12340**. English and Russian UI.
 Feedback: [GitHub Issues](https://github.com/dmitriinosach/-MANACODE-Vendor/issues)
-or [Discord](https://discord.gg/hpTkJCJbwn).
+or [Discord](https://discord.gg/CYnxS6R9qY).
