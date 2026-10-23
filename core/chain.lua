@@ -53,7 +53,7 @@ local function path(row, out)
         local c = row.cost
         local it = (c and c.honor == 0 and c.arena == 0 and #c.items == 1) and c.items[1] or nil
         local payId = it and idOf(it.link) or nil
-        if not (payId and byGet[payId] and row.id) then return out end
+        if not (payId and row.id) then return out end
         tail = {
             index = row.index, name = row.name, gold = row.price or 0, stock = row.stock or -1,
             payId = payId, payN = it.n, payLink = it.link, payTex = it.tex,
@@ -162,6 +162,8 @@ function Chain.Plan(list, want, out)
     out.buys = buys
     out.got = got
     out.gold = GetMoney() - money
+    out.complete = #list > 0 and buys > 0 and
+        (not want or want <= 0 or out[#list].times >= want)
     return out
 end
 local runner = CreateFrame("Frame")
@@ -247,7 +249,7 @@ runner:SetScript("OnUpdate", function(self, dt)
     job.pend = { edge = e, take = take, expect = purse - take * e.payN }
 end)
 function Chain.Run(list, onChange)
-    if job.list or not list or #list == 0 then return false end
+    if job.list or not list or #list == 0 or list.complete == false then return false end
     local any = false
     for _, s in ipairs(list) do
         if (s.times or 0) > 0 then any = true end

@@ -108,9 +108,42 @@ end
 function ns.SellingTab()
     return ns.MerchantOpen() and state.tab == "goods"
 end
+local bagClicks = {}
+local function bagClick(self, button, ...)
+    if button == "RightButton" and ns.MerchantOpen() and not MerchantFrame:IsShown()
+        and not IsModifiedClick() and not InRepairMode() then
+        if not ns.SellingTab() then return end
+        MerchantFrame_ResetRefundItem()
+        if ContainerFrame_GetExtendedPriceString(self) then return end
+    end
+    return bagClicks[self](self, button, ...)
+end
+local function bindBagItem(item)
+    if bagClicks[item] then return end
+    local original = item:GetScript("OnClick")
+    if not original then return end
+    bagClicks[item] = original
+    item:SetScript("OnClick", bagClick)
+end
 hooksecurefunc("ContainerFrameItemButton_OnEnter", function(self)
+    bindBagItem(self)
     if not ns.SellingTab() or InRepairMode() or IsModifiedClick("DRESSUP") then return end
     ShowContainerSellCursor(self:GetParent():GetID(), self:GetID())
+end)
+local function bindBag(container)
+    local name = container:GetName()
+    if not name then return end
+    for i = 1, MAX_CONTAINER_ITEMS do
+        local item = _G[name .. "Item" .. i]
+        if item then bindBagItem(item) end
+    end
+end
+hooksecurefunc("ContainerFrame_GenerateFrame", bindBag)
+ns.OnReady(function()
+    for i = 1, NUM_CONTAINER_FRAMES do
+        local container = _G["ContainerFrame" .. i]
+        if container then bindBag(container) end
+    end
 end)
 local function listWidth(cols)
     return cols * COL_DEF + (cols - 1) * COL_GAP
@@ -216,12 +249,31 @@ local function footLeftWidth()
     local w = FOOT_X
     if hammerBtn and hammerBtn:IsShown() then
         w = w + BTN * 2 + FOOT_GAP * 2 + (guildBtn:IsShown() and (BTN + FOOT_GAP) or 0)
-            + FOOT_GAP + math.ceil(repairText:GetStringWidth()) + FOOT_GAP * 2
+            + (repairText:IsShown() and (FOOT_GAP + math.ceil(repairText:GetStringWidth())) or 0) + FOOT_GAP * 2
     end
     if junkBtn and junkBtn:IsShown() then
-        w = w + BTN + FOOT_GAP + math.ceil(junkText:GetStringWidth()) + FOOT_GAP * 2
+        w = w + BTN + (junkText:IsShown() and (FOOT_GAP + math.ceil(junkText:GetStringWidth())) or 0) + FOOT_GAP * 2
     end
     return w
+end
+local function fitFoot(room)
+    if hammerBtn:IsShown() and state.repairFull then
+        repairText:SetText(state.repairFull)
+        repairText:Show()
+    end
+    if junkBtn:IsShown() and state.junkCount then
+        junkText:SetText(T("junkLine", state.junkCount, ns.List.Purse(state.junkValue)))
+        junkText:Show()
+    end
+    local limit = room - FOOT_X - 14
+    if footLeftWidth() > limit and junkBtn:IsShown() then
+        junkText:SetText(T("junkCount", state.junkCount or 0))
+        if footLeftWidth() > limit then junkText:Hide() end
+    end
+    if footLeftWidth() > limit and repairText:IsShown() then
+        repairText:SetText(state.repairCostText or "")
+        if footLeftWidth() > limit then repairText:Hide() end
+    end
 end
 local function footRightWidth()
     return FOOT_X + 14 + math.ceil(moneyText:GetStringWidth()) + 18
@@ -265,6 +317,7 @@ end
 placeFoot = function()
     if not moneyBtn then return end
     local room = frameWidth(state.cols)
+    fitFoot(room)
     local left = footLeftWidth()
     local two = left + footRightWidth() > room
     local want = two and FOOT_TWO or FOOT_ONE
@@ -280,6 +333,8 @@ placeFoot = function()
     junkBtn:ClearAllPoints()
     if repairText:IsShown() then
         junkBtn:SetPoint("LEFT", repairText, "RIGHT", FOOT_GAP * 2, 0)
+    elseif hammerBtn:IsShown() then
+        junkBtn:SetPoint("LEFT", guildBtn:IsShown() and guildBtn or repairBtn, "RIGHT", FOOT_GAP * 2, 0)
     else
         junkBtn:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", FOOT_X, topY + 1)
     end
@@ -389,6 +444,8 @@ local function updateRepair()
     repairText:ClearAllPoints()
     repairText:SetPoint("LEFT", guild and guildBtn or repairBtn, "RIGHT", 6, 0)
     repairText:SetText(text)
+    state.repairFull = text
+    state.repairCostText = cost > 0 and ns.List.Coin(cost) or ""
     if plain and broken and not rich then
         repairText:SetTextColor(1, 0.2, 0.2)
     else
@@ -413,6 +470,8 @@ updateJunk = function()
     if #list == 0 then
         junkBtn:Hide()
         junkText:Hide()
+        state.junkCount, state.junkValue = nil, nil
+        placeFoot()
         return
     end
     if not junkWired then
@@ -422,10 +481,12 @@ updateJunk = function()
     junkBtn:Show()
     junkText:Show()
     junkText:SetText(T("junkLine", #list, ns.List.Purse(total)))
+    state.junkCount, state.junkValue = #list, total
     ns.Theme.SetIconEnabled(junkBtn, not ns.Junk.Busy())
+    placeFoot()
 end
 local function junkEnter(self)
-    local list = ns.Junk.Scan()
+    local list, total = ns.Junk.Scan()
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     GameTooltip:SetText(T("junk"), 1, 1, 1)
     for i = 1, math.min(#list, JUNK_TIP_MAX) do
@@ -437,6 +498,7 @@ local function junkEnter(self)
         GameTooltip:AddLine(T("junkMore", #list - JUNK_TIP_MAX), 0.5, 0.5, 0.5)
     end
     GameTooltip:AddLine(" ")
+    GameTooltip:AddDoubleLine(T("junkValue"), GetCoinTextureString(total), 0.62, 0.62, 0.62, 1, 1, 1)
     GameTooltip:AddLine(T("tipJunk"), 0.6, 0.8, 1, true)
     GameTooltip:Show()
 end
@@ -455,6 +517,15 @@ end
 local function buy(btn, count)
     count = count or 1
     if count <= 0 then return end
+    if ns.List.CanAfford(btn.data) < count then
+        local list = ns.Chain.For(ns.List.Scan(), btn.data)
+        if #list > 0 then
+            ns.ConfirmChain(frame, btn.data, list, count)
+        else
+            ns.say(T("chainUnavailable"))
+        end
+        return
+    end
     if btn.extendedCost then
         MerchantFrame_ConfirmExtendedItemCost(btn, count)
     elseif btn.price and btn.price >= (MERCHANT_HIGH_PRICE_COST or 1500000) then
@@ -611,7 +682,12 @@ local function rowLeave()
     ResetCursor()
 end
 local function sellCursorItem(index)
-    if CursorHasItem() then PickupMerchantItem(index or 0) end
+    if not CursorHasItem() then return end
+    if MerchantFrame.refundItem
+        and ContainerFrame_GetExtendedPriceString(MerchantFrame.refundItem, MerchantFrame.refundItemEquipped) then
+        return
+    end
+    PickupMerchantItem(index or 0)
 end
 local function bindGoods(g)
     g.SplitStack = function(btn, split)
@@ -1111,6 +1187,7 @@ local function doRefresh()
     updateRepair()
     updateJunk()
     ns.RefreshFilterButton()
+    if ns.ConfirmRefresh then ns.ConfirmRefresh() end
     if missing and state.retryLeft > 0 then
         state.retryLeft = state.retryLeft - 1
         state.retryAt = GetTime() + RETRY_AFTER
@@ -1655,6 +1732,11 @@ local function buildEvents()
         if InRepairMode() then HideRepairCursor() end
         StaticPopup_Hide("CONFIRM_PURCHASE_TOKEN_ITEM")
         StaticPopup_Hide("CONFIRM_HIGH_COST_ITEM")
+        StaticPopup_Hide("CONFIRM_REFUND_TOKEN_ITEM")
+        StaticPopup_Hide("CONFIRM_REFUND_MAX_HONOR")
+        StaticPopup_Hide("CONFIRM_REFUND_MAX_ARENA_POINTS")
+        StaticPopup_Hide("CONFIRM_REFUND_MAX_HONOR_AND_ARENA")
+        MerchantFrame_ResetRefundItem()
         ns.ConfirmHide()
         ns.Filters.Hide()
         if qbar then qbar:Hide() end
