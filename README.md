@@ -1,25 +1,17 @@
-# [manacode] Vendor 0.1.4
+# [manacode] Vendor 0.1.5
 
 ## Русский
 
 **Что нового**
-- После обновления полностью перезапустите клиент: добавлены новые файлы.
-- Кнопка «i» у масштаба и `/vendor about` открывают сведения об аддоне:
-  установленная версия, ссылки для копирования, Discord, сайт и другие аддоны
-  ManaCode с отметкой об установке.
-- В узком окне цена продажи хлама уступает место починке и кошельку: сначала
-  остаётся «хлам xN», затем только иконка. Полная сумма — в подсказке;
-  при расширении окна подробности возвращаются.
-- Если для вещи не хватает эмблем, подтверждение предлагает доступный у
-  торговца обмен и покупку одним действием. Неполный план не тратит валюту.
-- В окне обмена количество не сбрасывается молча до доступного: окно объясняет
-  нехватку и обновляет расчёт при изменении запаса валюты.
-- Возврат вещи за эмблемы, честь или очки арены снова спрашивает подтверждение
-  до продажи. Работает при правом клике по вещи в сумке и при перетаскивании на
-  прилавок; «Нет» отменяет возврат. Предупреждения о лимите чести и арены —
-  штатные, закрытие торговца убирает незавершённое подтверждение.
-- Возврат за баджи работает и на отдельно созданных кнопках Bagnon.
-- На вкладке «Выкуп» правый клик по вещи в сумке не продаёт её торговцу.
+- Удалена подмена обработчиков сумок и Bagnon, из-за которой Blizzard мог
+  блокировать разделение стопок и использование вещей даже без торговца.
+- Вопрос возврата за эмблемы, честь и арену сохранён по ПКМ в обычной сумке
+  и Bagnon. Он появляется до продажи, без подмены штатного `OnClick`.
+  Дополнительно доступны кнопка «Возврат» под окном Vendor и перетаскивание
+  вещи на прилавок.
+- Обычные клики сумок обслуживает штатный клиент, в том числе на вкладке выкупа.
+- После обновления с 0.1.4 нужен `/reload`, чтобы сбросить уже загруженные
+  обработчики. Новых файлов в этой версии нет.
 
 **[manacode] Vendor — весь товар торговца в одном окне для WoW 3.3.5a.**
 
@@ -50,7 +42,8 @@
   недостающее. Все нужные обмены должны быть доступны у открытого торговца.
 - Продажа серого хлама с подтверждением, отдельная вкладка выкупа,
   починка за свои деньги или из гильдейского банка.
-- Возврат вещи за баджи со штатным вопросом «Да / Нет», в том числе из Bagnon.
+- Возврат вещи за баджи со штатным вопросом «Да / Нет» по правому клику
+  в сумке, включая Bagnon. Есть и отдельная кнопка «Возврат» под окном торговца.
   Если продать нужный реагент или предмет задания, аддон предупредит и напомнит
   про выкуп.
 - Плитки или строки, два оформления, изменение размера и масштаба.
@@ -60,7 +53,8 @@
 
 Скачать аддон можно на [странице релизов](https://github.com/dmitriinosach/-MANACODE-Vendor/releases).
 Распакуйте папку `ManaCode_Vendor` в `Interface\AddOns` и полностью перезапустите
-клиент после установки или обновления на 0.1.4: в этой версии добавлены новые файлы.
+клиент после первой установки. При обновлении с 0.1.4 на 0.1.5 достаточно
+`/reload`; при переходе с 0.1.3 и ниже нужен полный перезапуск из-за новых файлов.
 
 Есть и моя [обновлялка ManacodeUpdate — скачать](https://github.com/dmitriinosach/-MANACODE-Update/releases/latest).
 Через неё можно скачивать все мои аддоны из каталога и автоматически обновлять
@@ -82,22 +76,14 @@
 ## English
 
 **What’s new**
-- Restart the game after updating: this version adds new files.
-- The “i” button beside the scale controls and `/vendor about` open an About
-  window with the installed version, copyable download, Discord and website
-  links, and other ManaCode addons with installation status.
-- Narrow windows shorten the junk sale summary to a count or just its button.
-  The full sale value stays in the tooltip; widening the window restores the details.
-- When an item needs more emblems than you currently hold, the confirmation can
-  exchange the missing currency and buy the item in one action, using exchanges
-  offered by the current merchant. Incomplete plans do not spend currency.
-- The exchange quantity no longer silently drops to the available amount. The
-  dialog explains shortages and updates when your currency balance changes.
-- Refunding purchases made with emblems, honor or arena points shows the stock
-  confirmation before the item is sold, including right-clicks in Bagnon and
-  dragging items onto the merchant. Declining cancels the refund; currency cap
-  warnings remain in place, and closing the merchant clears the pending dialog.
-- Right-clicking an item in your bags while on the Buyback tab no longer sells it.
+- Removed the bag and Bagnon click-handler replacements that could cause
+  Blizzard to block stack splitting and item use even with no merchant open.
+- Right-clicking refundable purchases in stock bags or Bagnon opens the
+  confirmation before sale, without replacing the stock OnClick handler.
+  The Refund button below Vendor and dragging onto the merchant are also available.
+- Ordinary bag clicks are handled by the stock client, including on the Buyback tab.
+- Run `/reload` after updating from 0.1.4 to clear the previously loaded handlers.
+  This update adds no new files.
 
 **[manacode] Vendor — the entire merchant stock in one window for WoW 3.3.5a.**
 
@@ -128,8 +114,9 @@ merchant sells. It opens automatically when you talk to a merchant.
   Every required exchange must be offered by the merchant you have open.
 - Sell gray junk with confirmation, use a separate Buyback tab, and repair
   with your own money or guild bank funds.
-- Purchases made with emblems can be refunded with the stock Yes / No prompt,
-  including from Bagnon. Selling a useful reagent or quest item triggers a
+- Right-click refundable purchases in your bags, including Bagnon, for the
+  stock Yes / No prompt. A separate Refund button is also available below Vendor.
+  Selling a useful reagent or quest item triggers a
   warning and a reminder to buy it back.
 - Tile or row layouts, two themes, resizing and scaling. Window size is
   remembered separately for each merchant.
@@ -138,7 +125,8 @@ merchant sells. It opens automatically when you talk to a merchant.
 
 Download the addon from the [releases page](https://github.com/dmitriinosach/-MANACODE-Vendor/releases).
 Extract the `ManaCode_Vendor` folder into `Interface\AddOns` and restart the
-client after installation or updating to 0.1.4: this version adds new files.
+client after the first installation. Updating from 0.1.4 to 0.1.5 needs `/reload`;
+updating from 0.1.3 or earlier needs a full restart because of the new files.
 
 <!--@noncurse@-->
 You can also use my [ManacodeUpdate updater — download here](https://github.com/dmitriinosach/-MANACODE-Update/releases/latest).
