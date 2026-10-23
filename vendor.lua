@@ -48,7 +48,7 @@ function ns.SetEnabled(on)
     ns.ApplyTakeover()
     ns.say(ns.T(on and "chatOn" or "chatOff"))
 end
-local PARTS = { "Theme", "Scan", "Prof", "Uses", "Groups", "List", "Have", "Junk", "Sold", "Filter", "Filters", "Sizer" }
+local PARTS = { "Theme", "Scan", "Prof", "Uses", "Groups", "List", "Have", "Junk", "Sold", "Filter", "Filters", "Sizer", "About" }
 local broken = false
 function ns.Enabled()
     return (not broken) and HTP_VendorDB and HTP_VendorDB.enabled and true or false
@@ -98,6 +98,8 @@ SlashCmdList.HTPVENDOR = function(msg)
     elseif cmd == "reset" then
         HTP_VendorDB.sizes = {}
         ns.say(ns.T("chatReset"))
+    elseif cmd == "about" then
+        if ns.About then ns.About.Show() else ns.say(ns.T("aboutRestart")) end
     elseif cmd == "theme" then
         ns.SetTheme((msg or ""):lower():match("^%s*%S+%s+(%S+)") or "")
     elseif cmd == "mode" then
