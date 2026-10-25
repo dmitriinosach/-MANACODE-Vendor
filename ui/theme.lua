@@ -1,0 +1,479 @@
+local ADDON, ns = ...
+local Theme = {}
+ns.Theme = Theme
+local WHITE = "Interface\\Buttons\\WHITE8X8"
+local BORDER = "Interface\\PaperDollInfoFrame\\UI-GearManager-Border"
+local TITLE_BG = "Interface\\PaperDollInfoFrame\\UI-GearManager-Title-Background"
+local MARBLE = "Interface\\PaperDollInfoFrame\\UI-Character-CharacterTab-L1"
+local TIP_EDGE = "Interface\\Tooltips\\UI-Tooltip-Border"
+local HILITE = "Interface\\QuestFrame\\UI-QuestTitleHighlight"
+local PRESSED = "Interface\\Buttons\\UI-Quickslot-Depress"
+local BTN_HILITE = "Interface\\Buttons\\ButtonHilight-Square"
+local HAVE = "Interface\\RaidFrame\\ReadyCheck-Ready"
+local GLOW = "Interface\\Buttons\\UI-ActionButton-Border"
+local GLOW_SCALE, GLOW_ALPHA = 1.8, 0.5
+local DARK_LUM, LIFT = 0.5, 0.35
+local HAVE_SCALE = 0.45
+local PLUS = "Interface\\Buttons\\UI-PlusButton-Up"
+local MINUS = "Interface\\Buttons\\UI-MinusButton-Up"
+local K = 1.25
+local CORNER = 64
+local PIECES = {
+    tl = { 0.501953125, 0.625 }, tr = { 0.625, 0.75 }, t = { 0.25, 0.369140625 },
+    bl = { 0.751953125, 0.875 }, br = { 0.875, 1 }, b = { 0.376953125, 0.498046875 },
+    l = { 0.001953125, 0.125 }, r = { 0.1171875, 0.2421875 },
+}
+local MARBLE_COORD = { 0.255, 1, 0.29, 1 }
+local BAND_Y, BAND_H = 7 * K, 17 * K
+local BAND_MID = BAND_Y + BAND_H / 2
+local TITLE_H = 14
+local TITLE_SIDE = 44
+local PORTRAIT, PORTRAIT_X, PORTRAIT_EDGE, PORTRAIT_CROP = 16, 12, 1, 0.08
+local BOTTOM_TAB_H = 26
+local TAB_RAISE = 5
+local SKINS = { vanilla = true, flat = true }
+local widgets = {}
+function Theme.Name()
+    local db = ns.DB and ns.DB()
+    local t = db and db.theme
+    return SKINS[t] and t or "vanilla"
+end
+function Theme.Known(name)
+    return SKINS[name] and true or false
+end
+local function vanilla()
+    return Theme.Name() == "vanilla"
+end
+local function register(fn, obj)
+    widgets[#widgets + 1] = { fn = fn, obj = obj }
+    fn(obj)
+end
+function Theme.Apply()
+    for _, w in ipairs(widgets) do w.fn(w.obj) end
+end
+local function skinChrome(frame)
+    local c = frame.chrome
+    if vanilla() then
+        frame:SetBackdrop(nil)
+        for key, tex in pairs(c.pieces) do
+            tex:Show()
+            tex:SetTexture(BORDER)
+            tex:SetTexCoord(PIECES[key][1], PIECES[key][2], 0, 1)
+        end
+        c.band:Show()
+        c.band:SetTexture(TITLE_BG)
+        c.bg:Show()
+        c.bg:SetTexture(MARBLE)
+        c.bg:SetTexCoord(MARBLE_COORD[1], MARBLE_COORD[2], MARBLE_COORD[3], MARBLE_COORD[4])
+    else
+        frame:SetBackdrop({
+            bgFile = WHITE, edgeFile = TIP_EDGE, tile = false, edgeSize = 16,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        frame:SetBackdropColor(0.07, 0.07, 0.09, 1)
+        frame:SetBackdropBorderColor(0.5, 0.5, 0.5)
+        for _, tex in pairs(c.pieces) do tex:Hide() end
+        c.band:Hide()
+        c.bg:Hide()
+    end
+end
+function Theme.Chrome(frame)
+    local c = { pieces = {} }
+    for key in pairs(PIECES) do c.pieces[key] = frame:CreateTexture(nil, "OVERLAY") end
+    local p = c.pieces
+    local big = CORNER * K
+    p.tl:SetWidth(big); p.tl:SetHeight(big); p.tl:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    p.tr:SetWidth(big); p.tr:SetHeight(big); p.tr:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+    p.t:SetHeight(big)
+    p.t:SetPoint("TOPLEFT", p.tl, "TOPRIGHT", 0, 0)
+    p.t:SetPoint("TOPRIGHT", p.tr, "TOPLEFT", 0, 0)
+    p.bl:SetWidth(big); p.bl:SetHeight(big); p.bl:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+    p.br:SetWidth(big); p.br:SetHeight(big); p.br:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    p.b:SetHeight(big)
+    p.b:SetPoint("BOTTOMLEFT", p.bl, "BOTTOMRIGHT", 0, 0)
+    p.b:SetPoint("BOTTOMRIGHT", p.br, "BOTTOMLEFT", 0, 0)
+    p.l:SetWidth(big)
+    p.l:SetPoint("TOPLEFT", p.tl, "BOTTOMLEFT", 0, 0)
+    p.l:SetPoint("BOTTOMLEFT", p.bl, "TOPLEFT", 0, 0)
+    p.r:SetWidth(big)
+    p.r:SetPoint("TOPRIGHT", p.tr, "BOTTOMRIGHT", 0, 0)
+    p.r:SetPoint("BOTTOMRIGHT", p.br, "TOPRIGHT", 0, 0)
+    c.band = frame:CreateTexture(nil, "BORDER")
+    c.band:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -BAND_Y)
+    c.band:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -BAND_Y)
+    c.band:SetHeight(BAND_H)
+    c.bg = frame:CreateTexture(nil, "BORDER")
+    c.bg:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -24 * K)
+    c.bg:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -6, 8)
+    c.portraitBack = frame:CreateTexture(nil, "ARTWORK")
+    c.portraitBack:SetTexture(WHITE)
+    c.portraitBack:SetVertexColor(0, 0, 0, 0.85)
+    c.portraitBack:SetWidth(PORTRAIT + PORTRAIT_EDGE * 2)
+    c.portraitBack:SetHeight(PORTRAIT + PORTRAIT_EDGE * 2)
+    c.portraitBack:SetPoint("LEFT", frame, "TOPLEFT", PORTRAIT_X, -BAND_MID)
+    c.portrait = frame:CreateTexture(nil, "OVERLAY")
+    c.portrait:SetWidth(PORTRAIT); c.portrait:SetHeight(PORTRAIT)
+    c.portrait:SetPoint("CENTER", c.portraitBack, "CENTER", 0, 0)
+    c.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    c.title:SetPoint("TOP", frame, "TOP", 0, -(BAND_MID - TITLE_H / 2))
+    c.title:SetHeight(TITLE_H)
+    c.title:SetJustifyH("CENTER")
+    frame.chrome = c
+    register(skinChrome, frame)
+    return c
+end
+function Theme.SetTitle(frame, name, sub, maxWidth)
+    local c = frame.chrome
+    c.title:SetText(sub and (name .. "  |cffffffff" .. sub .. "|r") or name)
+    c.title:SetWidth(math.max(40, maxWidth - TITLE_SIDE * 2))
+end
+function Theme.SetPortrait(frame, unit)
+    local c = frame.chrome
+    if UnitExists(unit) then
+        SetPortraitTexture(c.portrait, unit)
+    else
+        c.portrait:SetTexture("Interface\\Icons\\INV_Misc_Coin_01")
+    end
+    c.portrait:SetTexCoord(PORTRAIT_CROP, 1 - PORTRAIT_CROP, PORTRAIT_CROP, 1 - PORTRAIT_CROP)
+end
+local TAB_PARTS = { "Left", "Middle", "Right", "LeftDisabled", "MiddleDisabled", "RightDisabled" }
+local function skinTab(btn)
+    local name = btn:GetName()
+    if vanilla() then
+        btn:SetBackdrop(nil)
+        for _, part in ipairs(TAB_PARTS) do
+            local tex = _G[name .. part]
+            local up = strfind(part, "Disabled", 1, true) and TAB_RAISE or 0
+            tex:SetHeight(BOTTOM_TAB_H + up)
+            tex:SetAlpha(1)
+        end
+    else
+        for _, part in ipairs(TAB_PARTS) do _G[name .. part]:SetAlpha(0) end
+        btn:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+        btn:SetBackdropBorderColor(0.13, 0.06, 0.06, 1)
+        if btn.selected then
+            btn:SetBackdropColor(0.48, 0.12, 0.12, 1)
+        else
+            btn:SetBackdropColor(0.30, 0.08, 0.08, 1)
+        end
+    end
+    btn:SetHeight(BOTTOM_TAB_H)
+end
+function Theme.Tab(btn)
+    register(skinTab, btn)
+end
+function Theme.RefreshTab(btn)
+    skinTab(btn)
+end
+local SLOT_BACK = { 0, 0, 0, 0.85 }
+local SLOT_EDGE = { 0.32, 0.30, 0.26 }
+local SLOT_OUT = 2
+local function skinRow(row)
+    row.slotBack:Show()
+    row.slotEdge:Show()
+end
+function Theme.Host(row, odd)
+    local bg = row:CreateTexture(nil, "BACKGROUND")
+    bg:SetTexture(WHITE)
+    bg:SetVertexColor(1, 1, 1, 0.035)
+    bg:SetAllPoints(row)
+    if not odd then bg:Hide() end
+    row.oddTex = bg
+    row.hlTex = Theme.Highlight(row, row)
+end
+function Theme.Highlight(frame, over)
+    local hl = frame:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetTexture(HILITE)
+    hl:SetBlendMode("ADD")
+    hl:SetAllPoints(over)
+    return hl
+end
+function Theme.IconSize(row, size)
+    if row.glowTex then
+        row.glowTex:SetWidth(math.floor(size * GLOW_SCALE))
+        row.glowTex:SetHeight(math.floor(size * GLOW_SCALE))
+    end
+    if row.haveTex then
+        row.haveTex:SetWidth(math.floor(size * HAVE_SCALE))
+        row.haveTex:SetHeight(math.floor(size * HAVE_SCALE))
+    end
+end
+local function slotUnder(owner, icon)
+    local back = owner:CreateTexture(nil, "BACKGROUND")
+    back:SetTexture(WHITE)
+    back:SetVertexColor(SLOT_BACK[1], SLOT_BACK[2], SLOT_BACK[3], SLOT_BACK[4])
+    back:SetPoint("TOPLEFT", icon, "TOPLEFT", -SLOT_OUT, SLOT_OUT)
+    back:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", SLOT_OUT, -SLOT_OUT)
+    local edge = owner:CreateTexture(nil, "BORDER")
+    edge:SetTexture(WHITE)
+    edge:SetVertexColor(SLOT_EDGE[1], SLOT_EDGE[2], SLOT_EDGE[3], 1)
+    edge:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1)
+    edge:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+    return back, edge
+end
+function Theme.Icon(row, icon, size)
+    row.slotBack, row.slotEdge = slotUnder(row, icon)
+    row.glowTex = row:CreateTexture(nil, "OVERLAY")
+    row.glowTex:SetTexture(GLOW)
+    row.glowTex:SetBlendMode("ADD")
+    row.glowTex:SetAlpha(GLOW_ALPHA)
+    row.glowTex:SetPoint("CENTER", icon, "CENTER", 0, 0)
+    row.glowTex:Hide()
+    row.haveTex = row:CreateTexture(nil, "OVERLAY")
+    row.haveTex:SetTexture(HAVE)
+    row.haveTex:SetPoint("TOPRIGHT", icon, "TOPRIGHT", 3, 3)
+    row.haveTex:Hide()
+    Theme.IconSize(row, size or icon:GetWidth())
+    register(skinRow, row)
+end
+function Theme.IconTint(row, r, g, b, frame, glow)
+    if r and glow then
+        row.glowTex:SetVertexColor(r, g, b)
+        row.glowTex:Show()
+    else
+        row.glowTex:Hide()
+    end
+    if not (r and frame) then
+        row.slotEdge:SetVertexColor(SLOT_EDGE[1], SLOT_EDGE[2], SLOT_EDGE[3], 1)
+        return
+    end
+    if 0.3 * r + 0.59 * g + 0.11 * b < DARK_LUM then
+        r, g, b = r + (1 - r) * LIFT, g + (1 - g) * LIFT, b + (1 - b) * LIFT
+    end
+    row.slotEdge:SetVertexColor(r, g, b, 1)
+end
+function Theme.Row(row, icon, odd)
+    Theme.Host(row, odd)
+    Theme.Icon(row, icon)
+end
+function Theme.Track(bar, arrow)
+    local back = bar:CreateTexture(nil, "BACKGROUND")
+    back:SetTexture(WHITE)
+    back:SetVertexColor(SLOT_BACK[1], SLOT_BACK[2], SLOT_BACK[3], 0.45)
+    back:SetPoint("TOPLEFT", bar, "TOPLEFT", -1, arrow + 1)
+    back:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 1, -arrow - 1)
+end
+function Theme.HideIcon(row)
+    row.slotBack:Hide()
+    row.slotEdge:Hide()
+    row.glowTex:Hide()
+    row.haveTex:Hide()
+end
+function Theme.ShowIcon(row)
+    skinRow(row)
+end
+local ROLES = "Interface\\LFGFrame\\UI-LFG-ICON-ROLES"
+local ROLE_COORD = {
+    heal = { 0.25, 0.5, 0, 0.25 },
+    tank = { 0, 0.25, 0.25, 0.5 },
+    dps = { 0.25, 0.5, 0.25, 0.5 },
+}
+function Theme.SetRole(row, role)
+    local c = role and ROLE_COORD[role]
+    if not c then
+        row.roleTex:Hide()
+        return
+    end
+    row.roleTex:SetTexture(ROLES)
+    row.roleTex:SetTexCoord(c[1], c[2], c[3], c[4])
+    row.roleTex:Show()
+end
+local function skinHead(row)
+    if vanilla() then
+        row.headBg:SetTexture(TITLE_BG)
+        row.headBg:SetVertexColor(1, 1, 1, 1)
+    else
+        row.headBg:SetTexture(WHITE)
+        row.headBg:SetVertexColor(1, 1, 1, 0.09)
+    end
+end
+local EXP_SIZE = 16
+local EXP_GROW = 2
+local function expGrow(btn, on)
+    local tex = btn:GetNormalTexture()
+    if not tex then return end
+    tex:ClearAllPoints()
+    local d = on and EXP_GROW or 0
+    tex:SetPoint("TOPLEFT", btn, "TOPLEFT", -d, d)
+    tex:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", d, -d)
+    tex:SetVertexColor(1, on and 0.92 or 1, on and 0.6 or 1)
+end
+local HEAD_BAR = 24
+function Theme.HeadBar(row, lineH)
+    local inset = math.max(2, math.floor((lineH - HEAD_BAR) / 2))
+    row.headBg:ClearAllPoints()
+    row.headBg:SetPoint("TOPLEFT", row, "TOPLEFT", 0, -inset)
+    row.headBg:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, inset)
+end
+function Theme.Head(row)
+    row.headBg = row:CreateTexture(nil, "BACKGROUND")
+    Theme.HeadBar(row, row:GetHeight())
+    row.exp = CreateFrame("Button", nil, row)
+    row.exp:SetWidth(EXP_SIZE)
+    row.exp:SetHeight(EXP_SIZE)
+    row.exp:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+    row.exp:SetHighlightTexture(BTN_HILITE, "ADD")
+    row.exp:SetScript("OnEnter", function(self) expGrow(self, true) end)
+    row.exp:SetScript("OnLeave", function(self) expGrow(self, false) end)
+    row.roleTex = row:CreateTexture(nil, "ARTWORK")
+    row.roleTex:SetWidth(18)
+    row.roleTex:SetHeight(18)
+    row.roleTex:SetPoint("LEFT", row, "LEFT", 8, 0)
+    row.roleTex:Hide()
+    register(skinHead, row)
+end
+function Theme.SetExpander(row, collapsed)
+    row.exp:SetNormalTexture(collapsed and PLUS or MINUS)
+    expGrow(row.exp, false)
+end
+function Theme.Divider(row, textX)
+    row.divText = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    row.divText:SetPoint("LEFT", row, "LEFT", textX, 0)
+    row.divText:SetJustifyH("LEFT")
+    row.divLine = row:CreateTexture(nil, "ARTWORK")
+    row.divLine:SetTexture(WHITE)
+    row.divLine:SetVertexColor(1, 1, 1, 0.14)
+    row.divLine:SetHeight(1)
+    row.divLine:SetPoint("LEFT", row.divText, "RIGHT", 8, 0)
+    row.divLine:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+end
+local function skinPanel(frame)
+    frame:SetBackdrop({
+        bgFile = WHITE, edgeFile = TIP_EDGE, tile = false, edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    if vanilla() then
+        frame:SetBackdropColor(0.10, 0.09, 0.07, 0.97)
+        frame:SetBackdropBorderColor(0.85, 0.72, 0.35)
+    else
+        frame:SetBackdropColor(0.07, 0.07, 0.09, 0.97)
+        frame:SetBackdropBorderColor(0.5, 0.5, 0.5)
+    end
+end
+function Theme.Panel(frame)
+    register(skinPanel, frame)
+    return frame
+end
+function Theme.IconButton(parent, size)
+    local btn = CreateFrame("Button", nil, parent)
+    btn:SetWidth(size)
+    btn:SetHeight(size)
+    btn.icon = btn:CreateTexture(nil, "ARTWORK")
+    btn.icon:SetAllPoints(btn)
+    btn.slotBack, btn.edge = slotUnder(btn, btn.icon)
+    btn:SetPushedTexture(PRESSED)
+    btn:SetHighlightTexture(BTN_HILITE, "ADD")
+    return btn
+end
+function Theme.SetIconEnabled(btn, on)
+    if on then
+        btn:Enable()
+        if not btn.icon:SetDesaturated(false) then btn.icon:SetVertexColor(1, 1, 1) end
+    else
+        btn:Disable()
+        if not btn.icon:SetDesaturated(true) then btn.icon:SetVertexColor(0.5, 0.5, 0.5) end
+    end
+end
+Theme.CTRL = 20
+Theme.CHIP = 18
+local GLYPH_BARS = { filter = { 12, 8, 4 }, rows = { 12, 12, 12 } }
+local BAR_H, BAR_GAP = 2, 3
+local TILE_SIDE, TILE_GAP = 5, 2
+function Theme.GlyphTint(btn, on, count)
+    btn.lit = on and true or false
+    for _, bar in ipairs(btn.bars or {}) do
+        if on then
+            bar:SetVertexColor(1, 0.82, 0.35, 0.9)
+        else
+            bar:SetVertexColor(0.62, 0.62, 0.62, 0.8)
+        end
+    end
+    if not btn.count or count == nil then return end
+    local box = math.floor(btn:GetHeight() or Theme.CTRL)
+    if not btn.countW then
+        btn.count:SetText("99")
+        btn.countW = math.ceil(btn.count:GetStringWidth())
+    end
+    btn:SetWidth(box + btn.countW + 2)
+    if count > 0 then
+        btn.count:SetText(count > 99 and "99+" or tostring(count))
+        btn.count:Show()
+    else
+        btn.count:Hide()
+    end
+end
+function Theme.Glyph(btn, kind)
+    btn.bars = btn.bars or {}
+    if not btn.count then
+        btn.count = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        btn.count:SetPoint("RIGHT", btn, "RIGHT", -1, 0)
+        btn.count:SetTextColor(1, 0.82, 0.35)
+        btn.count:Hide()
+    end
+    local box = math.floor(btn:GetHeight() or 0)
+    if box < 1 then box = Theme.CTRL end
+    local n = 0
+    local function bar(w, h, x, y)
+        n = n + 1
+        local t = btn.bars[n]
+        if not t then
+            t = btn:CreateTexture(nil, "ARTWORK")
+            t:SetTexture(WHITE)
+            btn.bars[n] = t
+        end
+        t:SetWidth(w)
+        t:SetHeight(h)
+        t:ClearAllPoints()
+        t:SetPoint("TOPLEFT", btn, "TOPLEFT", x, -y)
+        t:Show()
+    end
+    if kind == "tiles" then
+        local side = TILE_SIDE * 2 + TILE_GAP
+        local at = math.floor((box - side) / 2)
+        for row = 0, 1 do
+            for col = 0, 1 do
+                bar(TILE_SIDE, TILE_SIDE,
+                    at + col * (TILE_SIDE + TILE_GAP), at + row * (TILE_SIDE + TILE_GAP))
+            end
+        end
+    else
+        local list = GLYPH_BARS[kind] or GLYPH_BARS.rows
+        local total = #list * BAR_H + (#list - 1) * BAR_GAP
+        local y = math.floor((box - total) / 2)
+        for _, w in ipairs(list) do
+            bar(w, BAR_H, math.floor((box - w) / 2), y)
+            y = y + BAR_H + BAR_GAP
+        end
+    end
+    for i = n + 1, #btn.bars do btn.bars[i]:Hide() end
+    Theme.GlyphTint(btn, btn.lit ~= false)
+end
+function Theme.Chip(parent, text, height)
+    local b = CreateFrame("Button", nil, parent)
+    b:SetHeight(height or Theme.CHIP)
+    b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+    b:SetBackdropColor(0, 0, 0, 0.55)
+    b:SetBackdropBorderColor(1, 0.82, 0, 0.45)
+    local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b:SetFontString(fs)
+    b:SetNormalFontObject(GameFontNormalSmall)
+    b:SetHighlightFontObject(GameFontHighlightSmall)
+    b:SetDisabledFontObject(GameFontDisableSmall)
+    b:SetText(text)
+    b:SetWidth(math.ceil(fs:GetStringWidth()) + 14)
+    b:SetScript("OnEnter", function(self) self:SetBackdropColor(1, 0.82, 0, 0.25) end)
+    b:SetScript("OnLeave", function(self) self:SetBackdropColor(0, 0, 0, 0.55) end)
+    return b
+end
+function Theme.ChipWarn(b, warn)
+    if warn then
+        b:SetNormalFontObject(GameFontRedSmall)
+        b:SetHighlightFontObject(GameFontRedSmall)
+        b:SetBackdropBorderColor(1, 0.3, 0.3, 0.6)
+    else
+        b:SetNormalFontObject(GameFontNormalSmall)
+        b:SetHighlightFontObject(GameFontHighlightSmall)
+        b:SetBackdropBorderColor(1, 0.82, 0, 0.45)
+    end
+end
